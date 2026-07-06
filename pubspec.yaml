@@ -1,0 +1,27 @@
+name: bible_app
+description: A beautiful Bible reading app built with Flutter & GetX.
+publish_to: "none"
+version: 1.0.0+1
+
+environment:
+  sdk: ^3.8.1
+
+dependencies:
+  flutter:
+    sdk: flutter
+  get: ^4.7.3
+  shared_preferences: ^2.2.2
+  google_fonts: ^6.1.0
+  flutter_svg: ^2.0.9
+  animations: ^2.0.11
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^5.0.0
+
+flutter:
+  uses-material-design: true
+  assets:
+    - assets/bible/
+    - assets/bible/books/
