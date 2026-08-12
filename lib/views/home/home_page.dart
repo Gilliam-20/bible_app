@@ -117,10 +117,7 @@ class _HomeTab extends StatelessWidget {
             collapseMode: CollapseMode.parallax,
           ),
           backgroundColor: AppTheme.bgDeep,
-          title: Text(
-            'Scripture',
-            style: AppTheme.display(18, color: AppTheme.gold),
-          ),
+          title: Text('Kjv', style: AppTheme.display(18, color: AppTheme.gold)),
         ),
         SliverPadding(
           padding: const EdgeInsets.all(20),

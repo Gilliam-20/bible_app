@@ -30,11 +30,13 @@ class _ReaderPageState extends State<ReaderPage> {
 
   void _loadChapter() {
     ctrl.loadChapter(widget.book, _chapter);
-    _scroll.animateTo(
-      0,
-      duration: const Duration(milliseconds: 300),
-      curve: Curves.easeOut,
-    );
+    if (_scroll.hasClients) {
+      _scroll.animateTo(
+        0,
+        duration: const Duration(milliseconds: 300),
+        curve: Curves.easeOut,
+      );
+    }
   }
 
   void _goPrev() {
@@ -209,7 +211,7 @@ class _VerseList extends StatelessWidget {
   Widget build(BuildContext context) {
     final ctrl = Get.find<BibleController>();
 
-    return Obx(() => ListView.builder(
+    return ListView.builder(
       controller: scrollCtrl,
       padding: const EdgeInsets.fromLTRB(12, 20, 12, 20),
       itemCount: chapter.verses.length + 1,
@@ -224,18 +226,18 @@ class _VerseList extends StatelessWidget {
           );
         }
         final verse = chapter.verses[i - 1];
-        return VerseTile(
-          verse: verse,
-          isSelected: ctrl.selectedVerses.contains(verse.number),
-          isBookmarked: ctrl.isBookmarked(verse.number),
-          showNumber: ctrl.showVerseNumbers.value,
-          fontSize: ctrl.fontSize.value,
-          onTap: () => ctrl.toggleVerseSelection(verse.number),
-          onLongPress: () => ctrl.toggleVerseSelection(verse.number),
-          onBookmark: () => ctrl.bookmarkVerse(verse),
-        );
+        return Obx(() => VerseTile(
+              verse: verse,
+              isSelected: ctrl.selectedVerses.contains(verse.number),
+              isBookmarked: ctrl.isBookmarked(verse.number),
+              showNumber: ctrl.showVerseNumbers.value,
+              fontSize: ctrl.fontSize.value,
+              onTap: () => ctrl.toggleVerseSelection(verse.number),
+              onLongPress: () => ctrl.toggleVerseSelection(verse.number),
+              onBookmark: () => ctrl.bookmarkVerse(verse),
+            ));
       },
-    ));
+    );
   }
 }
 

@@ -33,8 +33,10 @@ class BibleVerse {
   const BibleVerse({required this.number, required this.text});
 
   factory BibleVerse.fromJson(Map<String, dynamic> j) => BibleVerse(
-        number: j['verse'] as int? ?? j['number'] as int,
-        text: j['text'] as String,
+        // The bundled translation stores verse numbers as strings, while
+        // other supported data sets use integers.
+        number: int.parse((j['verse'] ?? j['number']).toString()),
+        text: j['text'].toString(),
       );
 }
 

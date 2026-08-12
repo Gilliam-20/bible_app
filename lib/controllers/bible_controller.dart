@@ -26,6 +26,27 @@ class BibleController extends GetxController {
   // Cache loaded chapters in memory
   final Map<String, BibleChapter> _chapterCache = {};
 
+  // Asset filenames are not consistently based on the book IDs in books.json.
+  // Keep the mapping in one place so every book can be opened reliably.
+  static const _assetFileNames = <String, String>{
+    'jos': 'Jos', 'jdg': 'Jdg', '1ch': '1Chronicles',
+    '2ch': '2Chronicles', 'ezr': 'Ezra', 'neh': 'Nehemiah',
+    'est': 'Esther', 'job': 'Job', 'psa': 'Psalms', 'pro': 'Proverbs',
+    'ecc': 'Ecclesiastes', 'sng': 'SongofSolomon', 'isa': 'Isaiah',
+    'jer': 'Jeremiah', 'lam': 'Lamentations', 'ezk': 'Ezekiel',
+    'dan': 'Daniel', 'hos': 'Hosea', 'jol': 'Joel', 'amo': 'Amos',
+    'oba': 'Obadiah', 'jon': 'Jonah', 'mic': 'Micah', 'nam': 'Nahum',
+    'hab': 'Habakkuk', 'zep': 'Zephaniah', 'hag': 'Haggai',
+    'zec': 'Zechariah', 'mal': 'Malachi', 'mat': 'Matthew', 'mrk': 'Mark',
+    'luk': 'Luke', 'jhn': 'John', 'act': 'Acts', 'rom': 'Romans',
+    '1co': '1Corinthians', '2co': '2Corinthians', 'gal': 'Galatians',
+    'eph': 'Ephesians', 'php': 'Philippians', 'col': 'Colossians',
+    '1th': '1Thessalonians', '2th': '2Thessalonians', '1ti': '1Timothy',
+    '2ti': '2Timothy', 'tit': 'Titus', 'phm': 'Philemon', 'heb': 'Hebrews',
+    'jas': 'James', '1pe': '1Peter', '2pe': '2Peter', '1jn': '1John',
+    '2jn': '2John', '3jn': '3John', 'jud': 'Jude', 'rev': 'Revelation',
+  };
+
   /// Expose cache for search
   BibleChapter? chapterCacheFor(String key) => _chapterCache[key];
 
@@ -61,6 +82,7 @@ class BibleController extends GetxController {
   // ── Chapter loading ────────────────────────────────────────
   Future<void> loadChapter(BibleBook book, int chapter) async {
     final key = '${book.id}_$chapter';
+    selectedVerses.clear();
     if (_chapterCache.containsKey(key)) {
       currentChapter.value = _chapterCache[key];
       _saveReadingProgress(book, chapter);
@@ -69,17 +91,21 @@ class BibleController extends GetxController {
 
     isLoadingChapter.value = true;
     error.value = '';
-    selectedVerses.clear();
     try {
       // Expected path: assets/bible/books/<bookId>.json
       // File format: { "book": "genesis", "chapters": [ [ { "verse":1, "text":"..." }, ... ], ... ] }
-      final raw = await rootBundle.loadString(
-        'assets/bible/books/${book.id}.json',
-      );
+      final fileName = _assetFileNames[book.id] ?? book.id;
+      final raw = await rootBundle.loadString('assets/bible/books/$fileName.json');
       final Map<String, dynamic> data =
           json.decode(raw) as Map<String, dynamic>;
       final List chapters = data['chapters'] as List;
-      final List verseList = chapters[chapter - 1] as List;
+      if (chapter < 1 || chapter > chapters.length) {
+        throw RangeError.range(chapter, 1, chapters.length, 'chapter');
+      }
+      final chapterData = chapters[chapter - 1];
+      final List verseList = chapterData is Map
+          ? chapterData['verses'] as List
+          : chapterData as List;
       final verses = verseList.asMap().entries.map((e) {
         final v = e.value;
         if (v is Map<String, dynamic>) return BibleVerse.fromJson(v);
@@ -99,7 +125,7 @@ class BibleController extends GetxController {
     } catch (e) {
       error.value =
           'Could not load ${book.name} chapter $chapter.\n'
-          'Make sure the file assets/bible/books/${book.id}.json exists.';
+          'The chapter data could not be read. Please try again.';
     } finally {
       isLoadingChapter.value = false;
     }
@@ -184,9 +210,9 @@ class BibleController extends GetxController {
 
   // ── Font size ──────────────────────────────────────────────
   void increaseFontSize() =>
-      fontSize.value = (fontSize.value + 1).clamp(12, 28);
+      fontSize.value = (fontSize.value + 1).clamp(12, 28).toDouble();
   void decreaseFontSize() =>
-      fontSize.value = (fontSize.value - 1).clamp(12, 28);
+      fontSize.value = (fontSize.value - 1).clamp(12, 28).toDouble();
 
   // ── Navigation helpers ─────────────────────────────────────
   BibleBook? bookById(String id) => books.firstWhereOrNull((b) => b.id == id);
@@ -216,15 +242,26 @@ class BibleController extends GetxController {
     // Bookmarks
     final bms = prefs.getStringList('bookmarks') ?? [];
     bookmarks.value = bms
-        .map((s) => Bookmark.fromJson(json.decode(s) as Map<String, dynamic>))
+        .map((s) {
+          try {
+            return Bookmark.fromJson(json.decode(s) as Map<String, dynamic>);
+          } catch (_) {
+            return null;
+          }
+        })
+        .whereType<Bookmark>()
         .toList();
 
     // Last read
     final lr = prefs.getString('last_read');
     if (lr != null) {
-      lastRead.value = ReadingProgress.fromJson(
-        json.decode(lr) as Map<String, dynamic>,
-      );
+      try {
+        lastRead.value = ReadingProgress.fromJson(
+          json.decode(lr) as Map<String, dynamic>,
+        );
+      } catch (_) {
+        await prefs.remove('last_read');
+      }
     }
 
     // Font size

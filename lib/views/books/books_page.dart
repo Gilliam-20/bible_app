@@ -12,7 +12,8 @@ class BooksPage extends StatefulWidget {
   State<BooksPage> createState() => _BooksPageState();
 }
 
-class _BooksPageState extends State<BooksPage> with SingleTickerProviderStateMixin {
+class _BooksPageState extends State<BooksPage>
+    with SingleTickerProviderStateMixin {
   late final TabController _tabs;
   final _searchCtrl = TextEditingController();
   final ctrl = Get.find<BibleController>();
@@ -35,47 +36,59 @@ class _BooksPageState extends State<BooksPage> with SingleTickerProviderStateMix
     return Scaffold(
       backgroundColor: AppTheme.bgDeep,
       body: SafeArea(
-        child: Column(children: [
-          // ── Header ──────────────────────────────────────────
-          Padding(
-            padding: const EdgeInsets.fromLTRB(20, 16, 20, 0),
-            child: Column(children: [
-              Row(children: [
-                Text('Books', style: AppTheme.display(24)),
-                const Spacer(),
-                Obx(() => Text(
-                  '${ctrl.books.length} books',
-                  style: AppTheme.label(13, color: AppTheme.textDim),
-                )),
-              ]),
-              const SizedBox(height: 16),
-              BibleSearchBar(
-                controller: _searchCtrl,
-                onChanged: (v) => ctrl.searchQuery.value = v,
-                hint: 'Search books…',
-              ),
-              const SizedBox(height: 12),
-            ]),
-          ),
-          // ── Tabs ─────────────────────────────────────────────
-          _GoldTabBar(controller: _tabs),
-          const SizedBox(height: 8),
-          // ── Content ──────────────────────────────────────────
-          Expanded(
-            child: Obx(() {
-              if (ctrl.isLoadingBooks.value) return _buildShimmer();
-
-              return TabBarView(
-                controller: _tabs,
+        child: Column(
+          children: [
+            // ── Header ──────────────────────────────────────────
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 16, 20, 0),
+              child: Column(
                 children: [
-                  _BookList(books: ctrl.filteredBooks),
-                  _BookList(books: ctrl.filteredBooks.where((b) => b.isOT).toList()),
-                  _BookList(books: ctrl.filteredBooks.where((b) => !b.isOT).toList()),
+                  Row(
+                    children: [
+                      Text('Books', style: AppTheme.display(24)),
+                      const Spacer(),
+                      Obx(
+                        () => Text(
+                          '${ctrl.books.length} books',
+                          style: AppTheme.label(13, color: AppTheme.textDim),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+                  BibleSearchBar(
+                    controller: _searchCtrl,
+                    onChanged: (v) => ctrl.searchQuery.value = v,
+                    hint: 'Search books…',
+                  ),
+                  const SizedBox(height: 12),
                 ],
-              );
-            }),
-          ),
-        ]),
+              ),
+            ),
+            // ── Tabs ─────────────────────────────────────────────
+            _GoldTabBar(controller: _tabs),
+            const SizedBox(height: 8),
+            // ── Content ──────────────────────────────────────────
+            Expanded(
+              child: Obx(() {
+                if (ctrl.isLoadingBooks.value) return _buildShimmer();
+
+                return TabBarView(
+                  controller: _tabs,
+                  children: [
+                    _BookList(books: ctrl.filteredBooks),
+                    _BookList(
+                      books: ctrl.filteredBooks.where((b) => b.isOT).toList(),
+                    ),
+                    _BookList(
+                      books: ctrl.filteredBooks.where((b) => !b.isOT).toList(),
+                    ),
+                  ],
+                );
+              }),
+            ),
+          ],
+        ),
       ),
     );
   }
