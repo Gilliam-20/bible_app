@@ -20,8 +20,16 @@ class _SearchPageState extends State<SearchPage> {
   final RxBool _loading = false.obs;
 
   static const _suggestions = [
-    'love', 'faith', 'hope', 'grace', 'peace',
-    'strength', 'light', 'truth', 'joy', 'prayer',
+    'love',
+    'faith',
+    'hope',
+    'grace',
+    'peace',
+    'strength',
+    'light',
+    'truth',
+    'joy',
+    'prayer',
   ];
 
   @override
@@ -50,12 +58,14 @@ class _SearchPageState extends State<SearchPage> {
         if (cached == null) continue;
         for (final verse in cached.verses) {
           if (verse.text.toLowerCase().contains(q)) {
-            hits.add(_SearchResult(
-              bookName: entry.name,
-              bookId: entry.id,
-              chapter: cached.chapter,
-              verse: verse,
-            ));
+            hits.add(
+              _SearchResult(
+                bookName: entry.name,
+                bookId: entry.id,
+                chapter: cached.chapter,
+                verse: verse,
+              ),
+            );
             if (hits.length >= 100) break;
           }
         }
@@ -70,59 +80,72 @@ class _SearchPageState extends State<SearchPage> {
 
   @override
   Widget build(BuildContext context) {
+    final keyboardInset = MediaQuery.of(context).viewInsets.bottom;
+
     return Scaffold(
+      resizeToAvoidBottomInset: true,
       backgroundColor: AppTheme.bgDeep,
       body: SafeArea(
-        child: Column(children: [
-          // ── Header ──────────────────────────────────────────
-          Padding(
-            padding: const EdgeInsets.fromLTRB(20, 20, 20, 12),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text('Search', style: AppTheme.display(24)),
-                const SizedBox(height: 16),
-                BibleSearchBar(
-                  controller: _searchCtrl,
-                  onChanged: _search,
-                  hint: 'Search verses, words, phrases…',
+        child: AnimatedPadding(
+          duration: const Duration(milliseconds: 120),
+          curve: Curves.easeOut,
+          padding: EdgeInsets.only(bottom: keyboardInset),
+          child: Column(
+            children: [
+              // ── Header ──────────────────────────────────────────
+              Padding(
+                padding: const EdgeInsets.fromLTRB(20, 20, 20, 12),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('Search', style: AppTheme.display(24)),
+                    const SizedBox(height: 16),
+                    BibleSearchBar(
+                      controller: _searchCtrl,
+                      onChanged: _search,
+                      hint: 'Search verses, words, phrases…',
+                    ),
+                  ],
                 ),
-              ],
-            ),
+              ),
+              // ── Results / suggestions ────────────────────────────
+              Expanded(
+                child: Obx(() {
+                  if (_loading.value) {
+                    return const Center(
+                      child: CircularProgressIndicator(color: AppTheme.gold),
+                    );
+                  }
+
+                  if (_searchCtrl.text.isEmpty) {
+                    return _SuggestionsPanel(
+                      onSuggestion: (s) {
+                        _searchCtrl.text = s;
+                        _search(s);
+                      },
+                    );
+                  }
+
+                  if (_results.isEmpty) {
+                    return EmptyState(
+                      icon: Icons.search_off,
+                      title: 'No results',
+                      subtitle: _searchCtrl.text.length < 2
+                          ? 'Type at least 2 characters'
+                          : 'No verses found for "${_searchCtrl.text}".\n'
+                                'Note: search only covers chapters you have already opened.',
+                    );
+                  }
+
+                  return _ResultsList(
+                    results: _results,
+                    query: _searchCtrl.text,
+                  );
+                }),
+              ),
+            ],
           ),
-          // ── Results / suggestions ────────────────────────────
-          Expanded(
-            child: Obx(() {
-              if (_loading.value) {
-                return const Center(
-                  child: CircularProgressIndicator(color: AppTheme.gold),
-                );
-              }
-
-              if (_searchCtrl.text.isEmpty) {
-                return _SuggestionsPanel(
-                  onSuggestion: (s) {
-                    _searchCtrl.text = s;
-                    _search(s);
-                  },
-                );
-              }
-
-              if (_results.isEmpty) {
-                return EmptyState(
-                  icon: Icons.search_off,
-                  title: 'No results',
-                  subtitle: _searchCtrl.text.length < 2
-                      ? 'Type at least 2 characters'
-                      : 'No verses found for "${_searchCtrl.text}".\n'
-                          'Note: search only covers chapters you have already opened.',
-                );
-              }
-
-              return _ResultsList(results: _results, query: _searchCtrl.text);
-            }),
-          ),
-        ]),
+        ),
       ),
     );
   }
@@ -156,38 +179,44 @@ class _ResultsList extends StatelessWidget {
   Widget build(BuildContext context) {
     final ctrl = Get.find<BibleController>();
 
-    return Column(children: [
-      Padding(
-        padding: const EdgeInsets.fromLTRB(20, 4, 20, 12),
-        child: Row(children: [
-          Text('${results.length}${results.length == 100 ? '+' : ''} results',
-              style: AppTheme.label(13, color: AppTheme.textDim)),
-        ]),
-      ),
-      Expanded(
-        child: ListView.separated(
-          padding: const EdgeInsets.fromLTRB(20, 0, 20, 32),
-          itemCount: results.length,
-          separatorBuilder: (_, __) => const SizedBox(height: 10),
-          itemBuilder: (_, i) {
-            final r = results[i];
-            return _ResultTile(
-              result: r,
-              query: query,
-              onTap: () {
-                final book = ctrl.bookById(r.bookId);
-                if (book != null) {
-                  Get.to(
-                    () => ReaderPage(book: book, chapter: r.chapter),
-                    transition: Transition.rightToLeft,
-                  );
-                }
-              },
-            );
-          },
+    return Column(
+      children: [
+        Padding(
+          padding: const EdgeInsets.fromLTRB(20, 4, 20, 12),
+          child: Row(
+            children: [
+              Text(
+                '${results.length}${results.length == 100 ? '+' : ''} results',
+                style: AppTheme.label(13, color: AppTheme.textDim),
+              ),
+            ],
+          ),
         ),
-      ),
-    ]);
+        Expanded(
+          child: ListView.separated(
+            padding: const EdgeInsets.fromLTRB(20, 0, 20, 32),
+            itemCount: results.length,
+            separatorBuilder: (_, __) => const SizedBox(height: 10),
+            itemBuilder: (_, i) {
+              final r = results[i];
+              return _ResultTile(
+                result: r,
+                query: query,
+                onTap: () {
+                  final book = ctrl.bookById(r.bookId);
+                  if (book != null) {
+                    Get.to(
+                      () => ReaderPage(book: book, chapter: r.chapter),
+                      transition: Transition.rightToLeft,
+                    );
+                  }
+                },
+              );
+            },
+          ),
+        ),
+      ],
+    );
   }
 }
 
@@ -196,7 +225,11 @@ class _ResultTile extends StatelessWidget {
   final String query;
   final VoidCallback onTap;
 
-  const _ResultTile({required this.result, required this.query, required this.onTap});
+  const _ResultTile({
+    required this.result,
+    required this.query,
+    required this.onTap,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -210,16 +243,31 @@ class _ResultTile extends StatelessWidget {
           borderRadius: BorderRadius.circular(12),
           border: Border.all(color: AppTheme.divider),
         ),
-        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Row(children: [
-            Text(result.reference,
-                style: AppTheme.label(12, color: AppTheme.gold, weight: FontWeight.w700)),
-            const Spacer(),
-            const Icon(Icons.arrow_forward_ios, color: AppTheme.textDim, size: 12),
-          ]),
-          const SizedBox(height: 8),
-          _HighlightedText(text: result.verse.text, query: query),
-        ]),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Text(
+                  result.reference,
+                  style: AppTheme.label(
+                    12,
+                    color: AppTheme.gold,
+                    weight: FontWeight.w700,
+                  ),
+                ),
+                const Spacer(),
+                const Icon(
+                  Icons.arrow_forward_ios,
+                  color: AppTheme.textDim,
+                  size: 12,
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            _HighlightedText(text: result.verse.text, query: query),
+          ],
+        ),
       ),
     );
   }
@@ -235,8 +283,12 @@ class _HighlightedText extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (query.isEmpty) {
-      return Text(text, style: AppTheme.body(14, color: AppTheme.textMid), maxLines: 3,
-          overflow: TextOverflow.ellipsis);
+      return Text(
+        text,
+        style: AppTheme.body(14, color: AppTheme.textMid),
+        maxLines: 3,
+        overflow: TextOverflow.ellipsis,
+      );
     }
 
     final lower = text.toLowerCase();
@@ -247,22 +299,32 @@ class _HighlightedText extends StatelessWidget {
     while (true) {
       final idx = lower.indexOf(lq, start);
       if (idx == -1) {
-        spans.add(TextSpan(
-          text: text.substring(start),
-          style: AppTheme.body(14, color: AppTheme.textMid),
-        ));
+        spans.add(
+          TextSpan(
+            text: text.substring(start),
+            style: AppTheme.body(14, color: AppTheme.textMid),
+          ),
+        );
         break;
       }
       if (idx > start) {
-        spans.add(TextSpan(
-          text: text.substring(start, idx),
-          style: AppTheme.body(14, color: AppTheme.textMid),
-        ));
+        spans.add(
+          TextSpan(
+            text: text.substring(start, idx),
+            style: AppTheme.body(14, color: AppTheme.textMid),
+          ),
+        );
       }
-      spans.add(TextSpan(
-        text: text.substring(idx, idx + query.length),
-        style: AppTheme.body(14, color: AppTheme.gold, weight: FontWeight.w700),
-      ));
+      spans.add(
+        TextSpan(
+          text: text.substring(idx, idx + query.length),
+          style: AppTheme.body(
+            14,
+            color: AppTheme.gold,
+            weight: FontWeight.w700,
+          ),
+        ),
+      );
       start = idx + query.length;
     }
 
@@ -281,36 +343,59 @@ class _SuggestionsPanel extends StatelessWidget {
   const _SuggestionsPanel({required this.onSuggestion});
 
   static const _suggestions = [
-    'love', 'faith', 'hope', 'grace', 'peace',
-    'strength', 'light', 'truth', 'joy', 'prayer',
-    'salvation', 'mercy', 'wisdom', 'fear', 'trust',
+    'love',
+    'faith',
+    'hope',
+    'grace',
+    'peace',
+    'strength',
+    'light',
+    'truth',
+    'joy',
+    'prayer',
+    'salvation',
+    'mercy',
+    'wisdom',
+    'fear',
+    'trust',
   ];
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
+    return SingleChildScrollView(
       padding: const EdgeInsets.fromLTRB(20, 12, 20, 0),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('Try searching for', style: AppTheme.label(13, color: AppTheme.textDim)),
+          Text(
+            'Try searching for',
+            style: AppTheme.label(13, color: AppTheme.textDim),
+          ),
           const SizedBox(height: 12),
           Wrap(
             spacing: 8,
             runSpacing: 8,
             children: _suggestions
-                .map((s) => GestureDetector(
-                      onTap: () => onSuggestion(s),
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-                        decoration: BoxDecoration(
-                          color: AppTheme.bgCard,
-                          borderRadius: BorderRadius.circular(20),
-                          border: Border.all(color: AppTheme.divider),
-                        ),
-                        child: Text(s, style: AppTheme.label(13, color: AppTheme.textMid)),
+                .map(
+                  (s) => GestureDetector(
+                    onTap: () => onSuggestion(s),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 14,
+                        vertical: 8,
                       ),
-                    ))
+                      decoration: BoxDecoration(
+                        color: AppTheme.bgCard,
+                        borderRadius: BorderRadius.circular(20),
+                        border: Border.all(color: AppTheme.divider),
+                      ),
+                      child: Text(
+                        s,
+                        style: AppTheme.label(13, color: AppTheme.textMid),
+                      ),
+                    ),
+                  ),
+                )
                 .toList(),
           ),
           const SizedBox(height: 32),
