@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../controllers/bible_controller.dart';
+import '../../services/ad_service.dart';
 import '../../models/bible_models.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/reusable_widgets.dart';
@@ -78,10 +79,13 @@ class ChaptersPage extends StatelessWidget {
                     isActive:
                         ctrl.lastRead.value?.bookId == book.id &&
                         ctrl.lastRead.value?.chapter == ch,
-                    onTap: () => Get.to(
-                      () => ReaderPage(book: book, chapter: ch),
-                      transition: Transition.rightToLeft,
-                    ),
+                    onTap: () {
+                      AdService.maybeShowChapterInterstitial();
+                      Get.to(
+                        () => ReaderPage(book: book, chapter: ch),
+                        transition: Transition.rightToLeft,
+                      );
+                    },
                   ),
                 );
               }, childCount: book.chapters),

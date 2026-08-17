@@ -2,7 +2,9 @@ import 'package:bible_app/models/bible_models.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../controllers/bible_controller.dart';
+import '../../services/ad_service.dart';
 import '../../theme/app_theme.dart';
+import '../../widgets/adaptive_banner_ad.dart';
 import '../../widgets/reusable_widgets.dart';
 import '../books/books_page.dart';
 import '../bookmarks/bookmarks_page.dart';
@@ -30,9 +32,15 @@ class _HomePageState extends State<HomePage> {
   Widget build(BuildContext context) {
     return Scaffold(
       body: IndexedStack(index: _tab, children: _pages),
-      bottomNavigationBar: _BottomNav(
-        current: _tab,
-        onChanged: (i) => setState(() => _tab = i),
+      bottomNavigationBar: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const AdaptiveBannerAd(),
+          _BottomNav(
+            current: _tab,
+            onChanged: (i) => setState(() => _tab = i),
+          ),
+        ],
       ),
     );
   }
@@ -118,6 +126,13 @@ class _HomeTab extends StatelessWidget {
           ),
           backgroundColor: AppTheme.bgDeep,
           title: Text('Kjv', style: AppTheme.display(18, color: AppTheme.gold)),
+          actions: [
+            IconButton(
+              tooltip: 'Privacy settings',
+              icon: const Icon(Icons.privacy_tip_outlined, color: AppTheme.gold),
+              onPressed: AdService.showPrivacyOptions,
+            ),
+          ],
         ),
         SliverPadding(
           padding: const EdgeInsets.all(20),
