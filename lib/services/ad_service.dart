@@ -10,7 +10,7 @@ import 'package:google_mobile_ads/google_mobile_ads.dart';
 class AdService {
   AdService._();
 
-  static const _androidBannerId = 'ca-app-pub-3940256099942544/9214589741';
+  static const _androidBannerId = 'ca-app-pub-4632768799586734/5552999524';
   static const _iosBannerId = 'ca-app-pub-3940256099942544/2435281174';
   static const _androidInterstitialId =
       'ca-app-pub-3940256099942544/1033173712';

@@ -1,12 +1,12 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
     <application
-        android:label="holy_bible_app"
+        android:label="Holy Bible"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
         <!-- Google's sample App ID. Replace with your AdMob App ID before release. -->
         <meta-data
             android:name="com.google.android.gms.ads.APPLICATION_ID"
-            android:value="ca-app-pub-3940256099942544~3347511713" />
+            android:value="ca-app-pub-4632768799586734~9649720305" />
         <activity
             android:name=".MainActivity"
             android:exported="true"
