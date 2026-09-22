@@ -5,12 +5,15 @@ import 'package:get/get.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../models/bible_models.dart';
+import '../models/bible_version.dart';
+import '../services/bible_remote_service.dart';
 
 class BibleController extends GetxController {
   // ── State ──────────────────────────────────────────────────
   final RxList<BibleBook> books = <BibleBook>[].obs;
   final RxList<BibleBook> filteredBooks = <BibleBook>[].obs;
   final Rx<BibleChapter?> currentChapter = Rx<BibleChapter?>(null);
+  final Rx<BibleVersion> currentVersion = Rx<BibleVersion>(kBibleVersions.first);
   final RxBool isLoadingBooks = false.obs;
   final RxBool isLoadingChapter = false.obs;
   final RxString error = ''.obs;
@@ -25,27 +28,6 @@ class BibleController extends GetxController {
 
   // Cache loaded chapters in memory
   final Map<String, BibleChapter> _chapterCache = {};
-
-  // Asset filenames are not consistently based on the book IDs in books.json.
-  // Keep the mapping in one place so every book can be opened reliably.
-  static const _assetFileNames = <String, String>{
-    'jos': 'Jos', 'jdg': 'Jdg', '1ch': '1Chronicles',
-    '2ch': '2Chronicles', 'ezr': 'Ezra', 'neh': 'Nehemiah',
-    'est': 'Esther', 'job': 'Job', 'psa': 'Psalms', 'pro': 'Proverbs',
-    'ecc': 'Ecclesiastes', 'sng': 'SongofSolomon', 'isa': 'Isaiah',
-    'jer': 'Jeremiah', 'lam': 'Lamentations', 'ezk': 'Ezekiel',
-    'dan': 'Daniel', 'hos': 'Hosea', 'jol': 'Joel', 'amo': 'Amos',
-    'oba': 'Obadiah', 'jon': 'Jonah', 'mic': 'Micah', 'nam': 'Nahum',
-    'hab': 'Habakkuk', 'zep': 'Zephaniah', 'hag': 'Haggai',
-    'zec': 'Zechariah', 'mal': 'Malachi', 'mat': 'Matthew', 'mrk': 'Mark',
-    'luk': 'Luke', 'jhn': 'John', 'act': 'Acts', 'rom': 'Romans',
-    '1co': '1Corinthians', '2co': '2Corinthians', 'gal': 'Galatians',
-    'eph': 'Ephesians', 'php': 'Philippians', 'col': 'Colossians',
-    '1th': '1Thessalonians', '2th': '2Thessalonians', '1ti': '1Timothy',
-    '2ti': '2Timothy', 'tit': 'Titus', 'phm': 'Philemon', 'heb': 'Hebrews',
-    'jas': 'James', '1pe': '1Peter', '2pe': '2Peter', '1jn': '1John',
-    '2jn': '2John', '3jn': '3John', 'jud': 'Jude', 'rev': 'Revelation',
-  };
 
   /// Expose cache for search
   BibleChapter? chapterCacheFor(String key) => _chapterCache[key];
@@ -81,7 +63,8 @@ class BibleController extends GetxController {
 
   // ── Chapter loading ────────────────────────────────────────
   Future<void> loadChapter(BibleBook book, int chapter) async {
-    final key = '${book.id}_$chapter';
+    final version = currentVersion.value;
+    final key = '${version.id}_${book.id}_$chapter';
     selectedVerses.clear();
     if (_chapterCache.containsKey(key)) {
       currentChapter.value = _chapterCache[key];
@@ -92,42 +75,38 @@ class BibleController extends GetxController {
     isLoadingChapter.value = true;
     error.value = '';
     try {
-      // Expected path: assets/bible/books/<bookId>.json
-      // File format: { "book": "genesis", "chapters": [ [ { "verse":1, "text":"..." }, ... ], ... ] }
-      final fileName = _assetFileNames[book.id] ?? book.id;
-      final raw = await rootBundle.loadString('assets/bible/books/$fileName.json');
-      final Map<String, dynamic> data =
-          json.decode(raw) as Map<String, dynamic>;
-      final List chapters = data['chapters'] as List;
-      if (chapter < 1 || chapter > chapters.length) {
-        throw RangeError.range(chapter, 1, chapters.length, 'chapter');
-      }
-      final chapterData = chapters[chapter - 1];
-      final List verseList = chapterData is Map
-          ? chapterData['verses'] as List
-          : chapterData as List;
-      final verses = verseList.asMap().entries.map((e) {
-        final v = e.value;
-        if (v is Map<String, dynamic>) return BibleVerse.fromJson(v);
-        // Plain string format: chapters[ch][verse] = "text"
-        return BibleVerse(number: e.key + 1, text: v.toString());
-      }).toList();
-
-      final ch = BibleChapter(
-        bookId: book.id,
-        bookName: book.name,
-        chapter: chapter,
-        verses: verses,
-      );
+      final ch = await BibleRemoteService.fetchChapter(version, book, chapter);
       _chapterCache[key] = ch;
       currentChapter.value = ch;
       _saveReadingProgress(book, chapter);
+    } on BibleFetchException catch (e) {
+      error.value = e.isNetworkError
+          ? "You're offline and haven't read ${book.name} $chapter in "
+              '${version.abbreviation} before, so it can\'t be downloaded '
+              'right now.\nConnect to the internet once to save it for '
+              'offline use.'
+          : e.message;
     } catch (e) {
       error.value =
           'Could not load ${book.name} chapter $chapter.\n'
           'The chapter data could not be read. Please try again.';
     } finally {
       isLoadingChapter.value = false;
+    }
+  }
+
+  // ── Bible version ──────────────────────────────────────────
+  Future<void> changeVersion(BibleVersion version) async {
+    if (version.id == currentVersion.value.id) return;
+    currentVersion.value = version;
+
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('bible_version', version.id);
+
+    final ch = currentChapter.value;
+    if (ch != null) {
+      final book = bookById(ch.bookId);
+      if (book != null) await loadChapter(book, ch.chapter);
     }
   }
 
@@ -266,6 +245,10 @@ class BibleController extends GetxController {
 
     // Font size
     fontSize.value = prefs.getDouble('font_size') ?? 17.0;
+
+    // Bible version
+    final versionId = prefs.getString('bible_version');
+    if (versionId != null) currentVersion.value = versionById(versionId);
   }
 
   Future<void> saveFontSize() async {

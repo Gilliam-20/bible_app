@@ -174,13 +174,21 @@ class _ReaderAppBar extends StatelessWidget {
           ),
         ),
         Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
-              Text(book.name, style: AppTheme.display(16)),
-              Text('Chapter $chapter',
-                  style: AppTheme.label(12, color: AppTheme.gold)),
-            ],
+          child: GestureDetector(
+            onTap: () => showVersionPicker(context),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                Text(book.name, style: AppTheme.display(16)),
+                Obx(() {
+                  final ctrl = Get.find<BibleController>();
+                  return Text(
+                    'Chapter $chapter · ${ctrl.currentVersion.value.abbreviation}',
+                    style: AppTheme.label(12, color: AppTheme.gold),
+                  );
+                }),
+              ],
+            ),
           ),
         ),
         GoldIconButton(icon: Icons.text_decrease, onTap: onFontDecrease, tooltip: 'Decrease font'),

@@ -25,7 +25,7 @@ class ChaptersPage extends StatelessWidget {
           // ── App bar ──────────────────────────────────────────
           SliverAppBar(
             pinned: true,
-            expandedHeight: 140,
+            expandedHeight: 150,
             backgroundColor: AppTheme.bgDeep,
             leading: GestureDetector(
               onTap: () => Get.back(),
@@ -118,42 +118,51 @@ class _ChapterHeader extends StatelessWidget {
           colors: [Color(0xFF0A0B10), AppTheme.bgDeep],
         ),
       ),
-      padding: const EdgeInsets.fromLTRB(20, 80, 20, 20),
-      child: Row(
-        children: [
-          Container(
-            padding: const EdgeInsets.all(14),
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              color: book.isOT
-                  ? AppTheme.accentSoft
-                  : AppTheme.goldDim.withOpacity(0.3),
-              border: Border.all(
-                color: book.isOT ? AppTheme.accent : AppTheme.gold,
-                width: 1.5,
+      padding: const EdgeInsets.fromLTRB(20, 64, 20, 16),
+      alignment: Alignment.centerLeft,
+      // FittedBox guarantees this scales down instead of overflowing while
+      // the SliverAppBar shrinks toward its collapsed extent.
+      child: FittedBox(
+        fit: BoxFit.scaleDown,
+        alignment: Alignment.centerLeft,
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              padding: const EdgeInsets.all(14),
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: book.isOT
+                    ? AppTheme.accentSoft
+                    : AppTheme.goldDim.withValues(alpha: 0.3),
+                border: Border.all(
+                  color: book.isOT ? AppTheme.accent : AppTheme.gold,
+                  width: 1.5,
+                ),
+              ),
+              child: Text(
+                book.abbreviation,
+                style: AppTheme.label(
+                  13,
+                  color: book.isOT ? AppTheme.accent : AppTheme.gold,
+                  weight: FontWeight.w700,
+                ),
               ),
             ),
-            child: Text(
-              book.abbreviation,
-              style: AppTheme.label(
-                13,
-                color: book.isOT ? AppTheme.accent : AppTheme.gold,
-                weight: FontWeight.w700,
-              ),
+            const SizedBox(width: 16),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(book.name, style: AppTheme.display(22)),
+                Text(
+                  book.testament == 'OT' ? 'Old Testament' : 'New Testament',
+                  style: AppTheme.label(13, color: AppTheme.textDim),
+                ),
+              ],
             ),
-          ),
-          const SizedBox(width: 16),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(book.name, style: AppTheme.display(22)),
-              Text(
-                book.testament == 'OT' ? 'Old Testament' : 'New Testament',
-                style: AppTheme.label(13, color: AppTheme.textDim),
-              ),
-            ],
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -170,9 +179,9 @@ class _LastReadBanner extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       decoration: BoxDecoration(
-        color: AppTheme.goldDim.withOpacity(0.15),
+        color: AppTheme.goldDim.withValues(alpha: 0.15),
         borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: AppTheme.goldDim.withOpacity(0.4)),
+        border: Border.all(color: AppTheme.goldDim.withValues(alpha: 0.4)),
       ),
       child: Row(
         children: [

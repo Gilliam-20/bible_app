@@ -10,10 +10,17 @@ import 'package:google_mobile_ads/google_mobile_ads.dart';
 class AdService {
   AdService._();
 
+  // Real production unit.
   static const _androidBannerId = 'ca-app-pub-4632768799586734/5552999524';
+  // TODO(production): still Google's shared TEST unit ID -- replace with a
+  // real iOS banner unit from the AdMob console before release.
   static const _iosBannerId = 'ca-app-pub-3940256099942544/2435281174';
+  // TODO(production): still Google's shared TEST unit ID -- replace with a
+  // real Android interstitial unit from the AdMob console before release.
   static const _androidInterstitialId =
       'ca-app-pub-3940256099942544/1033173712';
+  // TODO(production): still Google's shared TEST unit ID -- replace with a
+  // real iOS interstitial unit from the AdMob console before release.
   static const _iosInterstitialId = 'ca-app-pub-3940256099942544/4411468910';
 
   static String get bannerId => defaultTargetPlatform == TargetPlatform.iOS
@@ -35,6 +42,22 @@ class AdService {
 
   static Future<void> initialize() async {
     if (!isSupported) return;
+    if (kDebugMode) {
+      const testIds = {
+        'iOS banner': _iosBannerId,
+        'Android interstitial': _androidInterstitialId,
+        'iOS interstitial': _iosInterstitialId,
+      };
+      final stillTest = testIds.entries
+          .where((e) => e.value.startsWith('ca-app-pub-3940256099942544'))
+          .map((e) => e.key);
+      if (stillTest.isNotEmpty) {
+        debugPrint(
+          'AdService: still using Google TEST ad unit IDs for: '
+          '${stillTest.join(', ')}. Replace before a production release.',
+        );
+      }
+    }
     await MobileAds.instance.initialize();
     await _requestConsent();
     loadInterstitial();

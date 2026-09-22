@@ -9,7 +9,10 @@ import '../../widgets/reusable_widgets.dart';
 import '../books/books_page.dart';
 import '../bookmarks/bookmarks_page.dart';
 import '../chapters/chapters_page.dart';
+import '../legal/privacy_policy_page.dart';
 import '../search/search_page.dart';
+
+enum _PrivacyMenuAction { policy, adConsent }
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -125,12 +128,54 @@ class _HomeTab extends StatelessWidget {
             collapseMode: CollapseMode.parallax,
           ),
           backgroundColor: AppTheme.bgDeep,
-          title: Text('Kjv', style: AppTheme.display(18, color: AppTheme.gold)),
+          title: GestureDetector(
+            onTap: () => showVersionPicker(context),
+            child: Obx(
+              () => Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    ctrl.currentVersion.value.abbreviation,
+                    style: AppTheme.display(18, color: AppTheme.gold),
+                  ),
+                  const SizedBox(width: 4),
+                  const Icon(Icons.expand_more, color: AppTheme.gold, size: 18),
+                ],
+              ),
+            ),
+          ),
           actions: [
-            IconButton(
-              tooltip: 'Privacy settings',
+            PopupMenuButton<_PrivacyMenuAction>(
+              tooltip: 'Privacy',
               icon: const Icon(Icons.privacy_tip_outlined, color: AppTheme.gold),
-              onPressed: AdService.showPrivacyOptions,
+              color: AppTheme.bgCard,
+              onSelected: (action) {
+                switch (action) {
+                  case _PrivacyMenuAction.policy:
+                    Get.to(
+                      () => const PrivacyPolicyPage(),
+                      transition: Transition.rightToLeft,
+                    );
+                  case _PrivacyMenuAction.adConsent:
+                    AdService.showPrivacyOptions();
+                }
+              },
+              itemBuilder: (context) => [
+                PopupMenuItem(
+                  value: _PrivacyMenuAction.policy,
+                  child: Text(
+                    'Privacy Policy',
+                    style: AppTheme.label(14, color: AppTheme.parchment),
+                  ),
+                ),
+                PopupMenuItem(
+                  value: _PrivacyMenuAction.adConsent,
+                  child: Text(
+                    'Ad Consent Settings',
+                    style: AppTheme.label(14, color: AppTheme.parchment),
+                  ),
+                ),
+              ],
             ),
           ],
         ),
@@ -190,7 +235,7 @@ class _HeroBanner extends StatelessWidget {
             decoration: BoxDecoration(
               shape: BoxShape.circle,
               gradient: RadialGradient(
-                colors: [AppTheme.gold.withOpacity(0.08), Colors.transparent],
+                colors: [AppTheme.gold.withValues(alpha: 0.08), Colors.transparent],
               ),
             ),
           ),
@@ -238,7 +283,7 @@ class _ContinueCard extends StatelessWidget {
           colors: [AppTheme.accentSoft, Color(0xFF1A2540)],
         ),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppTheme.accent.withOpacity(0.4)),
+        border: Border.all(color: AppTheme.accent.withValues(alpha: 0.4)),
       ),
       child: Row(
         children: [
@@ -311,7 +356,7 @@ class _VerseOfDayCard extends StatelessWidget {
     ),
     (
       'Jeremiah 29:11',
-      'For I know the plans I have for you," declares the Lord, "plans to prosper you and not to harm you, plans to give you hope and a future.',
+      'For I know the plans I have for you, declares the Lord, plans to prosper you and not to harm you, plans to give you hope and a future.',
     ),
     (
       'Romans 8:28',
@@ -435,6 +480,3 @@ extension _DateExt on DateTime {
     return difference(start).inDays;
   }
 }
-
-// Placeholder import to avoid unused warning (resolved by actual class usage)
-// ign

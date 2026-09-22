@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:get/get.dart';
+import '../controllers/bible_controller.dart';
 import '../theme/app_theme.dart';
 import '../models/bible_models.dart';
+import '../models/bible_version.dart';
 
 // ── Gold divider with optional label ─────────────────────────
 class GoldDivider extends StatelessWidget {
@@ -42,7 +45,7 @@ class TestamentBadge extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
       decoration: BoxDecoration(
-        color: isOT ? AppTheme.accentSoft : AppTheme.goldDim.withOpacity(0.3),
+        color: isOT ? AppTheme.accentSoft : AppTheme.goldDim.withValues(alpha: 0.3),
         borderRadius: BorderRadius.circular(4),
         border: Border.all(
           color: isOT ? AppTheme.accent : AppTheme.gold,
@@ -90,8 +93,8 @@ class BookTile extends StatelessWidget {
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
                 colors: book.isOT
-                    ? [AppTheme.accentSoft, AppTheme.accent.withOpacity(0.3)]
-                    : [AppTheme.goldDim.withOpacity(0.5), AppTheme.goldDim.withOpacity(0.15)],
+                    ? [AppTheme.accentSoft, AppTheme.accent.withValues(alpha: 0.3)]
+                    : [AppTheme.goldDim.withValues(alpha: 0.5), AppTheme.goldDim.withValues(alpha: 0.15)],
               ),
             ),
             child: Text(
@@ -149,7 +152,7 @@ class ChapterGridButton extends StatelessWidget {
             color: isActive ? AppTheme.gold : AppTheme.divider,
           ),
           boxShadow: isActive
-              ? [BoxShadow(color: AppTheme.gold.withOpacity(0.25), blurRadius: 8)]
+              ? [BoxShadow(color: AppTheme.gold.withValues(alpha: 0.25), blurRadius: 8)]
               : null,
         ),
         child: Text(
@@ -201,10 +204,10 @@ class VerseTile extends StatelessWidget {
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(8),
           color: isSelected
-              ? AppTheme.gold.withOpacity(0.12)
+              ? AppTheme.gold.withValues(alpha: 0.12)
               : Colors.transparent,
           border: isSelected
-              ? Border.all(color: AppTheme.gold.withOpacity(0.4))
+              ? Border.all(color: AppTheme.gold.withValues(alpha: 0.4))
               : Border.all(color: Colors.transparent),
         ),
         child: Row(
@@ -479,4 +482,86 @@ class GoldIconButton extends StatelessWidget {
       ),
     );
   }
+}
+
+// ── Bible version picker ──────────────────────────────────────
+Future<void> showVersionPicker(BuildContext context) {
+  final ctrl = Get.find<BibleController>();
+  return showModalBottomSheet(
+    context: context,
+    backgroundColor: AppTheme.bgCard,
+    // Without this, the sheet is capped at a fixed fraction of the screen
+    // height and its non-scrolling content can overflow that cap.
+    isScrollControlled: true,
+    shape: const RoundedRectangleBorder(
+      borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+    ),
+    builder: (sheetContext) => SafeArea(
+      child: ConstrainedBox(
+        constraints: BoxConstraints(
+          maxHeight: MediaQuery.of(sheetContext).size.height * 0.85,
+        ),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 12),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: AppTheme.divider,
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+              const SizedBox(height: 16),
+              Text('Bible Version', style: AppTheme.display(16, color: AppTheme.gold)),
+              const SizedBox(height: 4),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 24),
+                child: Text(
+                  'Versions download the first time you open a chapter, '
+                  'then stay available offline.',
+                  textAlign: TextAlign.center,
+                  style: AppTheme.label(11, color: AppTheme.textDim),
+                ),
+              ),
+              const SizedBox(height: 8),
+              Flexible(
+                child: SingleChildScrollView(
+                  child: Column(
+                    children: kBibleVersions.map(
+                      (v) => Obx(() {
+                        final active = ctrl.currentVersion.value.id == v.id;
+                        return ListTile(
+                          onTap: () {
+                            ctrl.changeVersion(v);
+                            Navigator.pop(sheetContext);
+                          },
+                          leading: Icon(
+                            active ? Icons.radio_button_checked : Icons.radio_button_off,
+                            color: active ? AppTheme.gold : AppTheme.textDim,
+                          ),
+                          title: Text(v.name, style: AppTheme.body(14, color: AppTheme.parchment)),
+                          subtitle: Text(
+                            'Fetched online, then cached',
+                            style: AppTheme.label(11, color: AppTheme.textDim),
+                          ),
+                          trailing: Text(
+                            v.abbreviation,
+                            style: AppTheme.label(12, color: AppTheme.gold, weight: FontWeight.w700),
+                          ),
+                        );
+                      }),
+                    ).toList(),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 8),
+            ],
+          ),
+        ),
+      ),
+    ),
+  );
 }

@@ -19,19 +19,6 @@ class _SearchPageState extends State<SearchPage> {
   final RxList<_SearchResult> _results = <_SearchResult>[].obs;
   final RxBool _loading = false.obs;
 
-  static const _suggestions = [
-    'love',
-    'faith',
-    'hope',
-    'grace',
-    'peace',
-    'strength',
-    'light',
-    'truth',
-    'joy',
-    'prayer',
-  ];
-
   @override
   void dispose() {
     _searchCtrl.dispose();
@@ -48,12 +35,14 @@ class _SearchPageState extends State<SearchPage> {
     final q = query.toLowerCase().trim();
     final hits = <_SearchResult>[];
 
-    // Search through currently loaded chapters in cache
+    // Search through currently loaded chapters in cache, for the version
+    // currently being read.
+    final versionId = ctrl.currentVersion.value.id;
     for (final entry in ctrl.books) {
       // We only search books that have been loaded into cache
       // In a real app you'd search a pre-built index
       for (int c = 1; c <= entry.chapters; c++) {
-        final key = '${entry.id}_$c';
+        final key = '${versionId}_${entry.id}_$c';
         final cached = ctrl.chapterCacheFor(key);
         if (cached == null) continue;
         for (final verse in cached.verses) {
